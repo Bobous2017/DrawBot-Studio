@@ -1,6 +1,7 @@
 import capture_picture
 import rigger_figure
 import vision_agent_module
+import dance_module
 
 
 def run_robot_agent():
@@ -15,8 +16,11 @@ def run_robot_agent():
     output_image = rigger_figure.remove_background(raw_image)
 
     print("---- extracting joints ----")
-    joints = vision_agent_module.get_robot_joints(output_image)
+    joints = vision_agent_module.get_robot_joints(raw_image)
     print(joints)
+
+    print("---- dancing ----")
+    dance_module.start_dancing(joints, figure_image_path=output_image, show_skeleton=True)
 
 
 if __name__ == "__main__":

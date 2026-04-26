@@ -1,4 +1,5 @@
 import cv2
+import os
 
 
 def take_photo():
@@ -10,7 +11,8 @@ def take_photo():
 
     print("Press 'Space' to take photo or 'Esc' to exit")
 
-    image_path = "capture_figure.jpg"
+    os.makedirs("assets", exist_ok=True)
+    image_path = os.path.join("assets", "capture_figure.jpg")
 
     while True:
         ret, frame = cap.read()
