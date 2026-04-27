@@ -45,7 +45,7 @@ def _parse_joints_content(content):
 def get_robot_joints(image_path):
     api_key = os.getenv("Agent_API_Key")
     api_url = os.getenv("Agent_URL")
-    model_id = os.getenv("Agent_MODEL", "google/gemini-3.1-flash")
+    model_id = os.getenv("Agent_MODEL")
 
     if not api_key or not api_url:
         raise ValueError("Agent_API_Key and Agent_URL must be set in the environment")
