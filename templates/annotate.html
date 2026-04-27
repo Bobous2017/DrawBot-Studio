@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Step 2 — Place Joints</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#0a0a0f;--accent:#7c3aed;--text:#f0f0f5;--muted:#6b6b80;--card:#1a1a24; }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:2rem 1rem;}
+  .step-indicator{display:flex;gap:.5rem;margin-bottom:1.5rem;}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);}
+  .dot.done{background:#34d399;}.dot.active{background:var(--accent);width:24px;border-radius:4px;}
+  h2{font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;margin-bottom:.4rem;}
+  .sub{color:var(--muted);margin-bottom:1.5rem;font-size:.95rem;}
+  .editor-wrap{display:flex;gap:2rem;align-items:flex-start;flex-wrap:wrap;justify-content:center;width:100%;max-width:1000px;}
+  .canvas-container{border-radius:16px;overflow:hidden;border:2px solid rgba(124,58,237,.3);box-shadow:0 0 40px rgba(124,58,237,.1);flex-shrink:0;position:relative;}
+  #jointCanvas{display:block;}
+  .sidebar{background:var(--card);border-radius:16px;border:1px solid rgba(255,255,255,.06);padding:1.5rem;min-width:220px;max-width:260px;}
+  .sidebar h3{font-family:'Syne',sans-serif;font-size:1rem;margin-bottom:1rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;}
+  .joint-list{list-style:none;display:flex;flex-direction:column;gap:.4rem;}
+  .joint-item{padding:.5rem .75rem;border-radius:8px;font-size:.85rem;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);color:var(--muted);transition:all .2s;}
+  .joint-item.hovered{background:rgba(124,58,237,.15);color:var(--text);border-color:rgba(124,58,237,.3);}
+  .controls{display:flex;gap:1rem;margin-top:1.5rem;flex-wrap:wrap;justify-content:center;}
+  .btn{padding:.9rem 2rem;border-radius:12px;border:none;font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;transition:all .3s;}
+  .btn-primary{background:linear-gradient(135deg,var(--accent),#5b21b6);color:white;box-shadow:0 0 30px rgba(124,58,237,.3);}
+  .btn-primary:hover{transform:translateY(-2px);}
+  .btn-ghost{background:rgba(255,255,255,.05);color:var(--muted);border:1px solid rgba(255,255,255,.08);}
+  .btn-ghost:hover{color:var(--text);}
+  .status{margin-top:1rem;text-align:center;color:var(--muted);font-size:.9rem;}
+  .status.success{color:#34d399;}
+  .hov-label{position:absolute;top:10px;left:10px;background:rgba(124,58,237,.9);color:white;padding:.3rem .7rem;border-radius:6px;font-size:.8rem;display:none;pointer-events:none;}
+</style>
+</head>
+<body>
+<div class="step-indicator">
+  <div class="dot done"></div><div class="dot active"></div><div class="dot"></div>
+</div>
+<h2>🦴 Place the Joints</h2>
+<p class="sub">Drag the white dots to match your character's body parts</p>
+<div class="editor-wrap">
+  <div class="canvas-container" id="cc">
+    <canvas id="jointCanvas"></canvas>
+    <div class="hov-label" id="hovLabel"></div>
+  </div>
+  <div class="sidebar">
+    <h3>Joints</h3>
+    <ul class="joint-list" id="jointList"></ul>
+  </div>
+</div>
+<div class="controls">
+  <button class="btn btn-ghost" onclick="location.href='/capture'">← Retake Photo</button>
+  <button class="btn btn-primary" onclick="save()">Save & Continue →</button>
+</div>
+<div class="status" id="status"></div>
+<script>
+const cfg={{cfg|tojson}};
+let pts=JSON.parse(JSON.stringify(cfg.skeleton));
+const W=cfg.width,H=cfg.height;
+const canvas=document.getElementById('jointCanvas');
+const ctx=canvas.getContext('2d');
+const hovLabel=document.getElementById('hovLabel');
+const jList=document.getElementById('jointList');
+const R=12;
+let dragIdx=null,hovIdx=null;
+const img=new Image();
+img.src='/api/texture?t='+Date.now();
+img.onload=()=>{
+  const mw=Math.min(640,window.innerWidth-300);
+  const sc=mw/W;
+  canvas.width=Math.round(W*sc);
+  canvas.height=Math.round(H*sc);
+  redraw();
+};
+function cx(dx){return dx*canvas.width/W;}
+function cy(dy){return dy*canvas.height/H;}
+function dx(px){return px*W/canvas.width;}
+function dy(py){return py*H/canvas.height;}
+function redraw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(img,0,0,canvas.width,canvas.height);
+  pts.forEach(pt=>{
+    if(!pt.parent)return;
+    const par=pts.find(p=>p.name===pt.parent);
+    if(!par)return;
+    ctx.beginPath();
+    ctx.moveTo(cx(pt.loc[0]),cy(pt.loc[1]));
+    ctx.lineTo(cx(par.loc[0]),cy(par.loc[1]));
+    ctx.strokeStyle='rgba(255,255,255,0.6)';
+    ctx.lineWidth=2;ctx.stroke();
+  });
+  pts.forEach((pt,i)=>{
+    ctx.beginPath();
+    ctx.arc(cx(pt.loc[0]),cy(pt.loc[1]),R,0,Math.PI*2);
+    ctx.fillStyle=(i===dragIdx||i===hovIdx)?'#7c3aed':'white';
+    ctx.fill();
+    ctx.strokeStyle='#0a0a0f';ctx.lineWidth=2;ctx.stroke();
+  });
+}
+function hit(ex,ey){
+  for(let i=pts.length-1;i>=0;i--){
+    if(Math.hypot(ex-cx(pts[i].loc[0]),ey-cy(pts[i].loc[1]))<=R+4)return i;
+  }return null;
+}
+function pos(e){
+  const r=canvas.getBoundingClientRect();
+  const t=e.touches?e.touches[0]:e;
+  return[t.clientX-r.left,t.clientY-r.top];
+}
+canvas.addEventListener('mousedown',e=>{
+  const[ex,ey]=pos(e);
+  const i=hit(ex,ey);
+  if(i!==null){dragIdx=i;canvas.style.cursor='grabbing';}
+});
+canvas.addEventListener('mousemove',e=>{
+  const[ex,ey]=pos(e);
+  if(dragIdx!==null){
+    pts[dragIdx].loc[0]=Math.round(Math.min(Math.max(dx(ex),0),W));
+    pts[dragIdx].loc[1]=Math.round(Math.min(Math.max(dy(ey),0),H));
+    redraw();return;
+  }
+  const i=hit(ex,ey);
+  if(i!==hovIdx){
+    hovIdx=i;
+    canvas.style.cursor=i!==null?'grab':'crosshair';
+    if(i!==null){hovLabel.textContent=pts[i].name.replace(/_/g,' ');hovLabel.style.display='block';}
+    else hovLabel.style.display='none';
+    updateList();redraw();
+  }
+});
+canvas.addEventListener('mouseup',()=>{dragIdx=null;canvas.style.cursor='crosshair';redraw();});
+canvas.addEventListener('mouseleave',()=>{dragIdx=null;hovIdx=null;hovLabel.style.display='none';redraw();});
+canvas.addEventListener('touchstart',e=>{e.preventDefault();const[ex,ey]=pos(e);const i=hit(ex,ey);if(i!==null)dragIdx=i;},{passive:false});
+canvas.addEventListener('touchmove',e=>{e.preventDefault();if(dragIdx===null)return;const[ex,ey]=pos(e);pts[dragIdx].loc[0]=Math.round(Math.min(Math.max(dx(ex),0),W));pts[dragIdx].loc[1]=Math.round(Math.min(Math.max(dy(ey),0),H));redraw();},{passive:false});
+canvas.addEventListener('touchend',()=>{dragIdx=null;redraw();});
+function updateList(){
+  jList.innerHTML=pts.map((p,i)=>`<li class="joint-item ${i===hovIdx?'hovered':''}">${p.name.replace(/_/g,' ')}</li>`).join('');
+}
+updateList();
+function save(){
+  fetch('/api/save_joints',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({skeleton:pts})})
+  .then(r=>r.json()).then(d=>{
+    if(d.success){document.getElementById('status').textContent='✅ Saved! Redirecting…';document.getElementById('status').className='status success';setTimeout(()=>location.href='/animate',600);}
+  });
+}
+</script>
+</body>
+</html>

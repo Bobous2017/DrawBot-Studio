@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Step 3 — Animate!</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f; --accent: #7c3aed; --accent2: #06b6d4;
+    --text: #f0f0f5; --muted: #6b6b80; --card: #1a1a24;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'DM Sans', sans-serif; min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 2rem 1rem;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: radial-gradient(ellipse 80% 50% at 50% 100%, rgba(124,58,237,0.1) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .step-indicator { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; z-index: 1; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .dot.done { background: #34d399; }
+  .dot.active { background: var(--accent); width: 24px; border-radius: 4px; }
+
+  h2 { font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 800; margin-bottom: 0.4rem; z-index: 1; }
+  .sub { color: var(--muted); margin-bottom: 2rem; font-size: 0.95rem; z-index: 1; }
+
+  .content {
+    display: flex; gap: 2rem; align-items: flex-start;
+    flex-wrap: wrap; justify-content: center; width: 100%;
+    max-width: 900px; z-index: 1;
+  }
+
+  /* Dance picker */
+  .dance-picker {
+    background: var(--card); border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 1.5rem; min-width: 200px;
+  }
+
+  .dance-picker h3 {
+    font-family: 'Syne', sans-serif; font-size: 0.85rem;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--muted); margin-bottom: 1rem;
+  }
+
+  .dance-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+  .dance-option {
+    padding: 0.75rem 1rem; border-radius: 10px; cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.02);
+    transition: all 0.2s; display: flex; align-items: center; gap: 0.75rem;
+    font-size: 0.9rem; color: var(--muted);
+  }
+  .dance-option:hover { color: var(--text); border-color: rgba(124,58,237,0.3); background: rgba(124,58,237,0.08); }
+  .dance-option.selected { background: rgba(124,58,237,0.15); border-color: rgba(124,58,237,0.5); color: var(--text); }
+  .dance-emoji { font-size: 1.2rem; }
+
+  /* Preview area */
+  .preview-area {
+    flex: 1; min-width: 280px; display: flex; flex-direction: column; align-items: center; gap: 1.5rem;
+  }
+
+  .preview-box {
+    width: 100%; aspect-ratio: 1;
+    max-width: 400px;
+    background: var(--card);
+    border: 2px solid rgba(124,58,237,0.2);
+    border-radius: 20px; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+
+  #gifResult { width: 100%; height: 100%; object-fit: contain; display: none; }
+
+  .placeholder {
+    text-align: center; color: var(--muted); padding: 2rem;
+  }
+  .placeholder .big { font-size: 4rem; margin-bottom: 1rem; }
+  .placeholder p { font-size: 0.9rem; }
+
+  .spinner {
+    display: none; flex-direction: column; align-items: center; gap: 1rem;
+    color: var(--muted); font-size: 0.9rem;
+  }
+  .spin {
+    width: 48px; height: 48px; border: 3px solid rgba(124,58,237,0.2);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .btn {
+    padding: 0.9rem 2rem; border-radius: 12px; border: none;
+    font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700;
+    cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 0.6rem;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #5b21b6);
+    color: white; box-shadow: 0 0 30px rgba(124,58,237,0.3);
+    font-size: 1.1rem; padding: 1rem 2.5rem;
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 50px rgba(124,58,237,0.5); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn-ghost {
+    background: rgba(255,255,255,0.05); color: var(--muted);
+    border: 1px solid rgba(255,255,255,0.08); font-size: 0.9rem;
+  }
+  .btn-ghost:hover { color: var(--text); }
+  .btn-restart {
+    background: rgba(6,182,212,0.1); color: #67e8f9;
+    border: 1px solid rgba(6,182,212,0.2);
+  }
+  .btn-restart:hover { background: rgba(6,182,212,0.2); }
+
+  .action-row { display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center; }
+
+  .status { color: var(--muted); font-size: 0.85rem; text-align: center; min-height: 1.2rem; }
+  .status.error { color: #f87171; }
+</style>
+</head>
+<body>
+
+<div class="step-indicator">
+  <div class="dot done"></div>
+  <div class="dot done"></div>
+  <div class="dot active"></div>
+</div>
+
+<h2>🎬 Choose a Dance</h2>
+<p class="sub">Pick a motion, generate the animation, and watch your character come alive!</p>
+
+<div class="content">
+  <div class="dance-picker">
+    <h3>Available Dances</h3>
+    <div class="dance-list">
+      {% set emojis = ['🕺', '🤸', '⬆️', '👋', '🧟'] %}
+      {% for motion in motions %}
+      <div class="dance-option {% if loop.first %}selected{% endif %}"
+           data-motion="{{ motion }}"
+           onclick="selectDance(this)">
+        <span class="dance-emoji">{{ emojis[loop.index0] if loop.index0 < emojis|length else '🎵' }}</span>
+        {{ motion }}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="preview-area">
+    <div class="preview-box">
+      <div class="placeholder" id="placeholder">
+        <div class="big">🎨</div>
+        <p>Your animation will appear here</p>
+      </div>
+      <div class="spinner" id="spinner">
+        <div class="spin"></div>
+        <span>Rendering animation…<br><small>This may take 30–60 seconds</small></span>
+      </div>
+      <img id="gifResult" alt="Animation">
+    </div>
+
+    <div class="action-row">
+      <button class="btn btn-ghost" onclick="window.location.href='/annotate'">← Edit Joints</button>
+      <button class="btn btn-primary" id="animateBtn" onclick="generateAnimation()">
+        ▶ Generate Animation
+      </button>
+    </div>
+
+    <div class="action-row" id="extraActions" style="display:none">
+      <button class="btn btn-ghost" onclick="generateAnimation()">🔄 Regenerate</button>
+      <button class="btn btn-restart" onclick="window.location.href='/'">🏠 New Character</button>
+    </div>
+
+    <div class="status" id="status"></div>
+  </div>
+</div>
+
+<script>
+let selectedMotion = '{{ motions[0] if motions else "Dab" }}';
+
+function selectDance(el) {
+  document.querySelectorAll('.dance-option').forEach(d => d.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedMotion = el.dataset.motion;
+}
+
+function generateAnimation() {
+  const btn = document.getElementById('animateBtn');
+  btn.disabled = true;
+  document.getElementById('placeholder').style.display = 'none';
+  document.getElementById('gifResult').style.display = 'none';
+  document.getElementById('spinner').style.display = 'flex';
+  document.getElementById('status').textContent = '';
+  document.getElementById('extraActions').style.display = 'none';
+
+  fetch('/api/animate', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ motion: selectedMotion })
+  })
+  .then(r => r.json())
+  .then(data => {
+    document.getElementById('spinner').style.display = 'none';
+    btn.disabled = false;
+    if (data.success) {
+      const gif = document.getElementById('gifResult');
+      gif.src = data.gif_url + '?t=' + Date.now();
+      gif.style.display = 'block';
+      document.getElementById('extraActions').style.display = 'flex';
+      document.getElementById('status').textContent = '✅ Animation ready!';
+    } else {
+      document.getElementById('placeholder').style.display = 'flex';
+      document.getElementById('status').textContent = 'Error: ' + data.error;
+      document.getElementById('status').className = 'status error';
+    }
+  })
+  .catch(e => {
+    document.getElementById('spinner').style.display = 'none';
+    document.getElementById('placeholder').style.display = 'flex';
+    btn.disabled = false;
+    document.getElementById('status').textContent = 'Network error: ' + e.message;
+    document.getElementById('status').className = 'status error';
+  });
+}
+</script>
+</body>
+</html>
