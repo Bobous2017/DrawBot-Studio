@@ -51,8 +51,8 @@ Create or edit `.env` in the project root:
 
 ```env
 Agent_API_Key=your_api_key_here
-Agent_URL=https://openrouter.ai/api/v1/chat/completions
-Agent_MODEL=google/gemini-3.1-flash
+Agent_URL=https://ai/api/v1/chat/completions
+Agent_MODEL=my_agent_module
 ```
 
 Notes:
