@@ -52,12 +52,9 @@ Create or edit `.env` in the project root:
 ```env
 Agent_API_Key=your_api_key_here
 Agent_URL=https://ai/api/v1/chat/completions
-<<<<<<< HEAD
 Agent_MODEL=my_agent_module
-=======
-Agent_MODEL=_your_moule_agent
->>>>>>> ef0c5917baacec400a8646a45670106d9ddca242
-```
+
+
 
 Notes:
 - `Agent_API_Key` and `Agent_URL` are required.
