@@ -14,7 +14,7 @@
   h2{font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;margin-bottom:.4rem;}
   .sub{color:var(--muted);margin-bottom:1.5rem;font-size:.95rem;}
   .editor-wrap{display:flex;gap:2rem;align-items:flex-start;flex-wrap:wrap;justify-content:center;width:100%;max-width:1000px;}
-  .canvas-container{border-radius:16px;overflow:hidden;border:2px solid rgba(124,58,237,.3);box-shadow:0 0 40px rgba(124,58,237,.1);flex-shrink:0;position:relative;}
+  .canvas-container{border-radius:16px;overflow:hidden;border:2px solid rgba(124,58,237,.3);box-shadow:0 0 40px rgba(124,58,237,.1);flex-shrink:0;position:relative;max-width: 480px;margin: 0 auto;}
   #jointCanvas{display:block;}
   .sidebar{background:var(--card);border-radius:16px;border:1px solid rgba(255,255,255,.06);padding:1.5rem;min-width:220px;max-width:260px;}
   .sidebar h3{font-family:'Syne',sans-serif;font-size:1rem;margin-bottom:1rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;}
@@ -49,6 +49,7 @@
   </div>
 </div>
 <div class="controls">
+  <button class="btn btn-ghost" onclick="location.href='/preprocess'">← Back to Prepocess</button>
   <button class="btn btn-ghost" onclick="location.href='/capture'">← Retake Photo</button>
   <button class="btn btn-primary" onclick="save()">Save & Continue →</button>
 </div>
@@ -66,7 +67,7 @@ let dragIdx=null,hovIdx=null;
 const img=new Image();
 img.src='/api/texture?t='+Date.now();
 img.onload=()=>{
-  const mw=Math.min(640,window.innerWidth-300);
+  const mw=Math.min(400,window.innerWidth-300);
   const sc=mw/W;
   canvas.width=Math.round(W*sc);
   canvas.height=Math.round(H*sc);

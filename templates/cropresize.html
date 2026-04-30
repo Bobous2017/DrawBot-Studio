@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Image Crop Studio - Pan, Select & Crop Before Segmentation</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            /* avoid accidental text selection while dragging */
+        }
+
+        body {
+            background: linear-gradient(145deg, #1a2a3a 0%, #0f1a24 100%);
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 24px;
+        }
+
+        .card {
+            max-width: 1300px;
+            width: 100%;
+            background: rgba(30, 40, 50, 0.7);
+            backdrop-filter: blur(2px);
+            border-radius: 2rem;
+            box-shadow: 0 20px 35px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+            padding: 1.5rem;
+            transition: all 0.2s;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin: 0 0 0.25rem 0;
+            color: #f0f3f8;
+            letter-spacing: -0.3px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        h1 small {
+            font-size: 0.8rem;
+            font-weight: 400;
+            background: #2d4a6e;
+            padding: 4px 12px;
+            border-radius: 40px;
+            color: #cae9ff;
+        }
+
+        .sub {
+            color: #9bb7d0;
+            margin-bottom: 1.8rem;
+            border-left: 3px solid #3b82f6;
+            padding-left: 12px;
+            font-size: 0.9rem;
+        }
+
+        /* upload zone */
+        .upload-zone {
+            background: #1e2a36;
+            border-radius: 1.5rem;
+            padding: 1.2rem;
+            margin-bottom: 1.8rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            border: 1px solid #2e4a6a;
+        }
+
+        .file-label {
+            background: #2c3e50;
+            padding: 10px 22px;
+            border-radius: 60px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            color: #eef4ff;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid #3e6a8c;
+        }
+
+        .file-label:hover {
+            background: #3a5e7a;
+            transform: scale(0.97);
+        }
+
+        .info-badge {
+            background: #0f212e;
+            padding: 8px 18px;
+            border-radius: 32px;
+            font-size: 0.85rem;
+            color: #bbd4f0;
+        }
+
+        /* main canvas workspace */
+        .workspace {
+            background: #0e151c;
+            border-radius: 1.5rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .canvas-container {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            background: #00000055;
+            border-radius: 1rem;
+            overflow: auto;
+            max-height: 60vh;
+            min-height: 380px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            display: inline-block;
+            margin: auto;
+        }
+
+        #imageCanvas {
+            display: block;
+            background: #1e2a2f;
+            box-shadow: 0 5px 18px rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            cursor: grab;
+            transition: cursor 0.1s;
+        }
+
+        #imageCanvas:active {
+            cursor: grabbing;
+        }
+
+        /* control row */
+        .action-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 18px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: #1f3a48;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: white;
+            cursor: pointer;
+            transition: 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid #2d6a8f;
+        }
+
+        button.primary {
+            background: #2b6a9f;
+            border-bottom-color: #5faee3;
+        }
+
+        button.primary:hover {
+            background: #357ebd;
+            transform: translateY(-1px);
+        }
+
+        button.danger {
+            background: #6d2e3a;
+            border-bottom-color: #b15566;
+        }
+
+        button:hover {
+            filter: brightness(1.05);
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        .result-area {
+            margin-top: 1.8rem;
+            background: #10181f;
+            border-radius: 1.2rem;
+            padding: 1rem;
+        }
+
+        .result-title {
+            display: flex;
+            gap: 12px;
+            align-items: baseline;
+            color: #c0dcf5;
+            font-weight: 500;
+            margin-bottom: 0.8rem;
+        }
+
+        .cropped-preview {
+            background: #010d15;
+            border-radius: 1rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            align-items: center;
+            padding: 0.8rem;
+        }
+
+        #croppedImg {
+            max-width: 240px;
+            max-height: 240px;
+            border-radius: 12px;
+            box-shadow: 0 6px 14px black;
+            background: #1e2a2a;
+            border: 1px solid #357e9e;
+        }
+
+        .crop-info {
+            font-family: monospace;
+            background: #07121b;
+            padding: 8px 16px;
+            border-radius: 28px;
+            font-size: 0.8rem;
+            color: #7fadcc;
+        }
+
+        hr {
+            border-color: #2a4050;
+            margin: 12px 0;
+        }
+
+        .helptext {
+            font-size: 0.75rem;
+            color: #6f95b0;
+            text-align: center;
+            margin-top: 12px;
+        }
+
+        @media (max-width: 700px) {
+            .card {
+                padding: 1rem;
+            }
+
+            button {
+                padding: 6px 14px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <h1>
+            ✂️ Precision Crop Studio
+            <small>pan + draggable crop rectangle</small>
+        </h1>
+        <div class="sub">📌 Upload → Adjust pan & crop box → Extract final crop (ready for segmentation)</div>
+
+        <div class="upload-zone">
+            <label class="file-label">
+                📁 Upload Image
+                <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp,image/bmp"
+                    style="display: none;">
+            </label>
+
+            <button id="toggleModeBtn" style="background:#5a3e2b;">🖌️ Switch to Freehand</button>
+            <div class="info-badge">🖱️ Drag inside canvas to pan | ✨ Resize / move crop rectangle</div>
+        </div>
+
+        <div class="workspace">
+            <div class="canvas-container">
+                <div class="canvas-wrapper" id="canvasWrapper">
+                    <canvas id="imageCanvas" width="800" height="500"
+                        style="width:100%; height:auto; max-width:100%;"></canvas>
+                </div>
+            </div>
+            <div class="action-bar">
+                <div class="btn-group">
+                    <button id="resetViewBtn" title="Reset pan & zoom (fit)">⟳ Reset view</button>
+                    <button id="resetCropBtn" class="danger">📐 Reset crop rectangle</button>
+                    <div class="info-badge" id="zoomLevel" style="background:#2a4a6e;">🔍 Zoom: 100%</div>
+                </div>
+                <div class="btn-group">
+                    <button id="applyCropBtn" class="primary">✂️ Apply Crop → Extract Region</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="result-area" id="resultPanel" style="display: none;">
+            <div class="result-title">
+                🧩 Cropped result (ready for segmentation)
+                <span class="crop-info" id="cropMeta"></span>
+            </div>
+            <div class="cropped-preview">
+                <img id="croppedImg" alt="cropped preview">
+                <div>
+                    <button id="downloadCropBtn" style="background:#1d5a46;">⬇️ Download Crop</button>
+                    <p style="font-size:12px; margin-top:10px;">💡 The extracted area matches your draggable
+                        rectangle.<br>Segmentation pipeline can use this image.</p>
+                </div>
+            </div>
+            <button id="continueBtn" class="primary" style="display:none; background:#2b6a4f;">
+                ✅ Use this crop → Continue to Process
+            </button>
+        </div>
+        <div class="helptext">
+            ⚡ CROP RECTANGLE: drag the dotted border to move • drag bottom-right corner handle to resize • <strong>step
+                1: upload image</strong> • pan by clicking+dragging background • adjust rectangle • hit "Apply Crop"
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            // ---------- DOM elements ----------
+            const canvas = document.getElementById('imageCanvas');
+            const ctx = canvas.getContext('2d');
+            const fileInput = document.getElementById('fileInput');
+            const resetViewBtn = document.getElementById('resetViewBtn');
+            const resetCropBtn = document.getElementById('resetCropBtn');
+            const applyCropBtn = document.getElementById('applyCropBtn');
+            const resultPanel = document.getElementById('resultPanel');
+            const croppedImg = document.getElementById('croppedImg');
+            const cropMetaSpan = document.getElementById('cropMeta');
+            const downloadBtn = document.getElementById('downloadCropBtn');
+            const toggleModeBtn = document.getElementById('toggleModeBtn');
+
+            // ---------- image data ----------
+            let originalImage = null;        // HTMLImageElement (full res)
+            let imgWidth = 0, imgHeight = 0; // natural dimensions
+            // viewport transform (pan)
+            let offsetX = 0, offsetY = 0;     // top-left corner of visible canvas in image coordinates
+            let scale = 1.0;                  // current zoom (relative to canvas display)
+            // crop rectangle in IMAGE coordinate space (original pixels)
+            let cropRect = { x: 100, y: 100, w: 200, h: 150 };
+            let isRectValid = true;
+            // interactive cropping state
+            let isDraggingRect = false;
+            let isResizing = false;
+            let dragStartMouse = { x: 0, y: 0 };
+            let rectStart = { x: 0, y: 0, w: 0, h: 0 };
+            const HANDLE_SIZE = 12;  // resize handle size in canvas pixels
+            // panning state
+            let isPanning = false;
+            let panStart = { x: 0, y: 0 };
+            let panStartOffset = { x: 0, y: 0 };
+            // flag to avoid event conflict and ensure redraw
+            let needsRedraw = true;
+            let drawMode = 'rectangle'; // 'rectangle' or 'freehand'
+            let freehandPoints = [];
+            let isDrawingFreehand = false;
+            let zoomIntensity = 0.1; // zoom speed
+
+            // ---------- helper functions ----------
+            function clamp(value, min, max) {
+                return Math.min(max, Math.max(min, value));
+            }
+
+            // clamp crop rectangle to image boundaries
+            function clampCropRect() {
+                if (!originalImage) return;
+                let maxW = imgWidth;
+                let maxH = imgHeight;
+                cropRect.x = clamp(cropRect.x, 0, maxW - 5);
+                cropRect.y = clamp(cropRect.y, 0, maxH - 5);
+                cropRect.w = clamp(cropRect.w, 20, maxW - cropRect.x);
+                cropRect.h = clamp(cropRect.h, 20, maxH - cropRect.y);
+                // edge safety if w/h become negative
+                if (cropRect.w < 20) cropRect.w = 20;
+                if (cropRect.h < 20) cropRect.h = 20;
+            }
+
+            // reset rectangle to a centered region (e.g. 40% of image)
+            function resetCropToCenter() {
+                if (!originalImage) return;
+                const centerX = imgWidth / 2;
+                const centerY = imgHeight / 2;
+                let w = Math.min(300, imgWidth * 0.6);
+                let h = Math.min(250, imgHeight * 0.5);
+                w = Math.max(80, w);
+                h = Math.max(80, h);
+                cropRect.x = clamp(centerX - w / 2, 0, imgWidth - w);
+                cropRect.y = clamp(centerY - h / 2, 0, imgHeight - h);
+                cropRect.w = w;
+                cropRect.h = h;
+                clampCropRect();
+                drawCanvas();
+            }
+
+            // adjust pan offset based on current scale / canvas size & image bounds
+            function clampPanOffset() {
+                if (!originalImage) return;
+                const canvasDisplayW = canvas.width;
+                const canvasDisplayH = canvas.height;
+                // visible region size in image coords
+                const viewW = canvasDisplayW / scale;
+                const viewH = canvasDisplayH / scale;
+                // offsetX, offsetY represent top-left corner of canvas in image coords
+                offsetX = clamp(offsetX, 0, imgWidth - viewW);
+                offsetY = clamp(offsetY, 0, imgHeight - viewH);
+                if (imgWidth <= viewW) offsetX = 0;
+                if (imgHeight <= viewH) offsetY = 0;
+            }
+
+            // fit image to canvas (reset pan and scale)
+            function resetView() {
+                if (!originalImage) return;
+                const canvasW = canvas.width;
+                const canvasH = canvas.height;
+                const imgRatio = imgWidth / imgHeight;
+                const canvasRatio = canvasW / canvasH;
+                let newScale;
+                if (imgRatio > canvasRatio) {
+                    newScale = canvasW / imgWidth;
+                } else {
+                    newScale = canvasH / imgHeight;
+                }
+                scale = newScale;
+                // center the image
+                const viewW = canvasW / scale;
+                const viewH = canvasH / scale;
+                offsetX = (imgWidth - viewW) / 2;
+                offsetY = (imgHeight - viewH) / 2;
+                clampPanOffset();
+                drawCanvas();
+            }
+
+            // convert canvas pixel coordinates (relative to canvas element) to image coordinates
+            function canvasToImageCoords(clientX, clientY) {
+                const rect = canvas.getBoundingClientRect();
+                const scaleXCanvas = canvas.width / rect.width;   // logical vs css
+                const scaleYCanvas = canvas.height / rect.height;
+                let canvasX = (clientX - rect.left) * scaleXCanvas;
+                let canvasY = (clientY - rect.top) * scaleYCanvas;
+                canvasX = clamp(canvasX, 0, canvas.width);
+                canvasY = clamp(canvasY, 0, canvas.height);
+                const imgX = offsetX + canvasX / scale;
+                const imgY = offsetY + canvasY / scale;
+                return { imgX: clamp(imgX, 0, imgWidth), imgY: clamp(imgY, 0, imgHeight) };
+            }
+
+            // convert rectangle (image coords) to canvas coords for drawing & hit testing
+            function rectToCanvasCoords(rectImg) {
+                const left = (rectImg.x - offsetX) * scale;
+                const top = (rectImg.y - offsetY) * scale;
+                const right = (rectImg.x + rectImg.w - offsetX) * scale;
+                const bottom = (rectImg.y + rectImg.h - offsetY) * scale;
+                return { left, top, right, bottom, width: right - left, height: bottom - top };
+            }
+
+            // check if mouse hits resize handle (bottom-right corner)
+            function hitResizeHandle(mouseCanvasX, mouseCanvasY, rectCanvas) {
+                const handleSizePx = HANDLE_SIZE;
+                const handleX = rectCanvas.right - handleSizePx;
+                const handleY = rectCanvas.bottom - handleSizePx;
+                return (mouseCanvasX >= handleX && mouseCanvasX <= rectCanvas.right + 4 &&
+                    mouseCanvasY >= handleY && mouseCanvasY <= rectCanvas.bottom + 4);
+            }
+
+            // check if hit rectangle (move)
+            function hitRectangleMove(mouseCanvasX, mouseCanvasY, rectCanvas) {
+                return (mouseCanvasX >= rectCanvas.left && mouseCanvasX <= rectCanvas.right &&
+                    mouseCanvasY >= rectCanvas.top && mouseCanvasY <= rectCanvas.bottom) &&
+                    !hitResizeHandle(mouseCanvasX, mouseCanvasY, rectCanvas);
+            }
+
+            // draw canvas with image + crop overlay
+            function drawCanvas() {
+                if (!originalImage) {
+                    ctx.fillStyle = "#1e2a36";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = "#aaccee";
+                    ctx.font = "16px Segoe UI";
+                    ctx.fillText("⬆ Upload an image to get started", canvas.width / 2 - 150, canvas.height / 2);
+                    return;
+                }
+                // clear and draw image region based on pan offset & scale
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.save();
+                // we need to draw portion of original image: from offsetX, offsetY, scaled to canvas
+                const sourceW = canvas.width / scale;
+                const sourceH = canvas.height / scale;
+                ctx.drawImage(originalImage, offsetX, offsetY, sourceW, sourceH, 0, 0, canvas.width, canvas.height);
+
+                // draw crop rectangle overlay (semi-transparent mask, rectangle highlight)
+                // draw crop rectangle overlay ONLY in rectangle mode
+                // draw crop rectangle overlay ONLY in rectangle mode (NO DARK OVERLAY)
+                if (drawMode === 'rectangle') {
+                    const rectCanvas = rectToCanvasCoords(cropRect);
+                    if (rectCanvas.width > 1 && rectCanvas.height > 1) {
+                        // Draw a semi-transparent fill INSIDE the rectangle (optional - shows selection)
+                        ctx.save();
+                        ctx.globalAlpha = 0.15;
+                        ctx.fillStyle = "#3b82f6";
+                        ctx.fillRect(rectCanvas.left, rectCanvas.top, rectCanvas.width, rectCanvas.height);
+                        ctx.globalAlpha = 1;
+
+                        // Draw dashed border
+                        ctx.strokeStyle = "#3b82f6";
+                        ctx.lineWidth = 2.5;
+                        ctx.setLineDash([8, 8]);
+                        ctx.strokeRect(rectCanvas.left, rectCanvas.top, rectCanvas.width, rectCanvas.height);
+                        ctx.setLineDash([]);
+
+                        // Draw solid inner border for better visibility
+                        ctx.strokeStyle = "#ffffff";
+                        ctx.lineWidth = 1.5;
+                        ctx.strokeRect(rectCanvas.left, rectCanvas.top, rectCanvas.width, rectCanvas.height);
+
+                        // Draw resize handle (bottom-right corner)
+                        const handleX = rectCanvas.right - HANDLE_SIZE;
+                        const handleY = rectCanvas.bottom - HANDLE_SIZE;
+                        ctx.fillStyle = "#3b82f6";
+                        ctx.shadowBlur = 2;
+                        ctx.fillRect(handleX, handleY, HANDLE_SIZE, HANDLE_SIZE);
+                        ctx.fillStyle = "#ffffff";
+                        ctx.fillRect(handleX + 2, handleY + 2, HANDLE_SIZE - 4, HANDLE_SIZE - 4);
+                        ctx.shadowBlur = 0;
+
+                        // Helper label
+                        ctx.font = "bold 11px 'Segoe UI'";
+                        ctx.fillStyle = "#3b82f6";
+                        ctx.shadowBlur = 2;
+                        ctx.fillText("✂️ drag | resize", rectCanvas.left + 5, rectCanvas.top - 4);
+                        ctx.fillText("◢", rectCanvas.right - 14, rectCanvas.bottom - 3);
+                        ctx.shadowBlur = 0;
+                        ctx.restore();
+                    }
+                }
+                // Draw freehand path if in freehand mode
+                if (drawMode === 'freehand' && freehandPoints.length > 1) {
+                    ctx.save();
+                    ctx.beginPath();
+
+                    // Convert first point to canvas coordinates
+                    let firstCanvas = {
+                        x: (freehandPoints[0].x - offsetX) * scale,
+                        y: (freehandPoints[0].y - offsetY) * scale
+                    };
+                    ctx.moveTo(firstCanvas.x, firstCanvas.y);
+
+                    for (let i = 1; i < freehandPoints.length; i++) {
+                        let canvasPoint = {
+                            x: (freehandPoints[i].x - offsetX) * scale,
+                            y: (freehandPoints[i].y - offsetY) * scale
+                        };
+                        ctx.lineTo(canvasPoint.x, canvasPoint.y);
+                    }
+
+                    ctx.strokeStyle = '#00ff99';
+                    ctx.lineWidth = 3;
+                    ctx.shadowBlur = 0;
+                    ctx.stroke();
+
+                    // If drawing is complete, show semi-transparent fill
+                    if (!isDrawingFreehand && freehandPoints.length > 2) {
+                        ctx.fillStyle = 'rgba(0, 255, 150, 0.2)';
+                        ctx.fill();
+                    }
+                    ctx.restore();
+                }
+            }
+
+            // Update crop rectangle via resize or move after mouse
+            function resizeRect(deltaXImg, deltaYImg, anchor) {
+                // anchor: 'nw' etc but we simplified: only resizing from bottom-right corner
+                let newW = cropRect.w + deltaXImg;
+                let newH = cropRect.h + deltaYImg;
+                if (newW < 30) newW = 30;
+                if (newH < 30) newH = 30;
+                cropRect.w = newW;
+                cropRect.h = newH;
+                clampCropRect();
+                drawCanvas();
+            }
+
+            function moveRect(deltaXImg, deltaYImg) {
+                cropRect.x += deltaXImg;
+                cropRect.y += deltaYImg;
+                clampCropRect();
+                drawCanvas();
+            }
+
+            // mouse handlers for interactive rectangle (drag/resize) and pan + FREEHAND
+            function onMouseDown(e) {
+                if (!originalImage) return;
+
+                // FREEHAND MODE: start drawing
+                if (drawMode === 'freehand') {
+                    isDrawingFreehand = true;
+                    freehandPoints = []; // clear previous points
+                    const imgCoord = canvasToImageCoords(e.clientX, e.clientY);
+                    freehandPoints.push({ x: imgCoord.imgX, y: imgCoord.imgY });
+                    e.preventDefault();
+                    return;
+                }
+
+                // RECTANGLE MODE (existing logic)
+                const rectCanvasBounds = canvas.getBoundingClientRect();
+                const mouseXcanvas = (e.clientX - rectCanvasBounds.left) * (canvas.width / rectCanvasBounds.width);
+                const mouseYcanvas = (e.clientY - rectCanvasBounds.top) * (canvas.height / rectCanvasBounds.height);
+
+                const rectCanvasCoord = rectToCanvasCoords(cropRect);
+                if (hitResizeHandle(mouseXcanvas, mouseYcanvas, rectCanvasCoord)) {
+                    isResizing = true;
+                    const imgCoord = canvasToImageCoords(e.clientX, e.clientY);
+                    rectStart = { x: cropRect.x, y: cropRect.y, w: cropRect.w, h: cropRect.h };
+                    dragStartMouse = { x: imgCoord.imgX, y: imgCoord.imgY };
+                    e.preventDefault();
+                    return;
+                } else if (hitRectangleMove(mouseXcanvas, mouseYcanvas, rectCanvasCoord)) {
+                    isDraggingRect = true;
+                    const imgCoord = canvasToImageCoords(e.clientX, e.clientY);
+                    dragStartMouse = { x: imgCoord.imgX, y: imgCoord.imgY };
+                    rectStart = { x: cropRect.x, y: cropRect.y };
+                    e.preventDefault();
+                    return;
+                } else {
+                    // start panning
+                    isPanning = true;
+                    panStart = { x: e.clientX, y: e.clientY };
+                    panStartOffset = { x: offsetX, y: offsetY };
+                    canvas.style.cursor = 'grabbing';
+                    e.preventDefault();
+                }
+            }
+
+            function onMouseMove(e) {
+                // Inside onMouseMove, add this at the VERY BEGINNING:
+                if (drawMode === 'freehand' && isDrawingFreehand) {
+                    const imgCoord = canvasToImageCoords(e.clientX, e.clientY);
+                    freehandPoints.push({ x: imgCoord.imgX, y: imgCoord.imgY });
+                    drawCanvas(); // redraw to show the line
+                    return;
+                }
+                if (!originalImage) return;
+                if (isResizing) {
+                    const currentImg = canvasToImageCoords(e.clientX, e.clientY);
+                    let deltaX = currentImg.imgX - dragStartMouse.x;
+                    let deltaY = currentImg.imgY - dragStartMouse.y;
+                    let newW = rectStart.w + deltaX;
+                    let newH = rectStart.h + deltaY;
+                    if (newW < 30) newW = 30;
+                    if (newH < 30) newH = 30;
+                    cropRect.w = newW;
+                    cropRect.h = newH;
+                    clampCropRect();
+                    drawCanvas();
+                    return;
+                }
+                if (isDraggingRect) {
+                    const currentImg = canvasToImageCoords(e.clientX, e.clientY);
+                    let deltaX = currentImg.imgX - dragStartMouse.x;
+                    let deltaY = currentImg.imgY - dragStartMouse.y;
+                    cropRect.x = rectStart.x + deltaX;
+                    cropRect.y = rectStart.y + deltaY;
+                    clampCropRect();
+                    drawCanvas();
+                    return;
+                }
+                if (isPanning) {
+                    const dx = e.clientX - panStart.x;
+                    const dy = e.clientY - panStart.y;
+                    const deltaXimg = dx / scale;
+                    const deltaYimg = dy / scale;
+                    offsetX = panStartOffset.x - deltaXimg;
+                    offsetY = panStartOffset.y - deltaYimg;
+                    clampPanOffset();
+                    drawCanvas();
+                }
+            }
+
+            function onMouseUp(e) {
+                if (drawMode === 'freehand' && isDrawingFreehand) {
+                    isDrawingFreehand = false;
+                    if (freehandPoints.length > 5) {
+                        console.log('Freehand selection ready with', freehandPoints.length, 'points');
+                    }
+                    return; // Prevent executing rectangle code
+                }
+                isDraggingRect = false;
+                isResizing = false;
+                isPanning = false;
+                canvas.style.cursor = 'grab';
+            }
+            
+            function extractFreehandCrop() {
+                if (!originalImage || freehandPoints.length < 3) {
+                    alert('Draw a closed shape first (at least 3 points)');
+                    return false;
+                }
+
+
+                // Find bounding box of freehand points
+                let minX = Math.min(...freehandPoints.map(p => p.x));
+                let minY = Math.min(...freehandPoints.map(p => p.y));
+                let maxX = Math.max(...freehandPoints.map(p => p.x));
+                let maxY = Math.max(...freehandPoints.map(p => p.y));
+
+                const width = maxX - minX;
+                const height = maxY - minY;
+
+                // Create offscreen canvas
+                const offCanvas = document.createElement('canvas');
+                offCanvas.width = width;
+                offCanvas.height = height;
+                const offCtx = offCanvas.getContext('2d');
+
+                // Draw the selected area with clipping path
+                offCtx.save();
+                offCtx.beginPath();
+
+                // Transform points to relative coordinates
+                let relativePoints = freehandPoints.map(p => ({
+                    x: p.x - minX,
+                    y: p.y - minY
+                }));
+
+                offCtx.moveTo(relativePoints[0].x, relativePoints[0].y);
+                for (let i = 1; i < relativePoints.length; i++) {
+                    offCtx.lineTo(relativePoints[i].x, relativePoints[i].y);
+                }
+                offCtx.closePath();
+                offCtx.clip();
+
+                // Draw the image region
+                offCtx.drawImage(originalImage, minX, minY, width, height, 0, 0, width, height);
+                offCtx.restore();
+
+                const dataUrl = offCanvas.toDataURL('image/png');
+                croppedImg.src = dataUrl;
+                resultPanel.style.display = 'block';
+                cropMetaSpan.innerText = `Freehand selection (${freehandPoints.length} points)`;
+                window.lastCroppedDataUrl = dataUrl;
+                return true;
+
+            }
+
+            // ---- crop extraction ----
+            function extractFinalCrop() {
+                if (!originalImage) {
+                    alert('Please upload an image first.');
+                    return false;
+                }
+                clampCropRect();
+                const { x, y, w, h } = cropRect;
+                if (w <= 0 || h <= 0 || x + w > imgWidth || y + h > imgHeight) {
+                    alert('Invalid crop region, reset rectangle and try again.');
+                    return false;
+                }
+                // create offscreen canvas to extract pixels
+                const offCanvas = document.createElement('canvas');
+                offCanvas.width = w;
+                offCanvas.height = h;
+                const offCtx = offCanvas.getContext('2d');
+                offCtx.drawImage(originalImage, x, y, w, h, 0, 0, w, h);
+                const dataUrl = offCanvas.toDataURL('image/png');
+                croppedImg.src = dataUrl;
+                resultPanel.style.display = 'block';
+                cropMetaSpan.innerText = `${Math.round(w)}×${Math.round(h)} px @ (${Math.round(x)},${Math.round(y)})`;
+                // store for download
+                window.lastCroppedDataUrl = dataUrl;
+                return true;
+            }
+
+            function downloadCropped() {
+                if (window.lastCroppedDataUrl) {
+                    const link = document.createElement('a');
+                    link.download = 'cropped_segment_ready.png';
+                    link.href = window.lastCroppedDataUrl;
+                    link.click();
+                } else {
+                    alert('No crop available. Apply crop first.');
+                }
+            }
+
+            // ---- load image file ----
+            function loadImageFromFile(file) {
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        originalImage = img;
+                        imgWidth = img.width;
+                        imgHeight = img.height;
+                        // resize canvas logical dimensions: maintain good view (max 1000px width)
+                        const maxCanvasWidth = Math.min(1000, window.innerWidth - 100);
+                        const maxCanvasHeight = Math.min(600, window.innerHeight - 280);
+                        let targetWidth = imgWidth;
+                        let targetHeight = imgHeight;
+                        if (targetWidth > maxCanvasWidth) {
+                            targetWidth = maxCanvasWidth;
+                            targetHeight = (imgHeight * maxCanvasWidth) / imgWidth;
+                        }
+                        if (targetHeight > maxCanvasHeight) {
+                            targetHeight = maxCanvasHeight;
+                            targetWidth = (imgWidth * maxCanvasHeight) / imgHeight;
+                        }
+                        canvas.width = Math.max(300, targetWidth);
+                        canvas.height = Math.max(200, targetHeight);
+
+                        resetView();  // compute scale/offset fit
+                        resetCropToCenter(); // set initial proper crop rect
+                        drawCanvas();
+                        resultPanel.style.display = 'none';
+                        window.lastCroppedDataUrl = null;
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    loadImageFromFile(e.target.files[0]);
+                }
+            });
+
+            // Auto-load captured image on page load
+            window.addEventListener('load', () => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => {
+                    originalImage = img;
+                    imgWidth = img.width;
+                    imgHeight = img.height;
+                    const maxCanvasWidth = Math.min(1000, window.innerWidth - 100);
+                    const maxCanvasHeight = Math.min(600, window.innerHeight - 280);
+                    let targetWidth = imgWidth, targetHeight = imgHeight;
+                    if (targetWidth > maxCanvasWidth) {
+                        targetHeight = (imgHeight * maxCanvasWidth) / imgWidth;
+                        targetWidth = maxCanvasWidth;
+                    }
+                    if (targetHeight > maxCanvasHeight) {
+                        targetWidth = (imgWidth * maxCanvasHeight) / imgHeight;
+                        targetHeight = maxCanvasHeight;
+                    }
+                    canvas.width = Math.max(300, targetWidth);
+                    canvas.height = Math.max(200, targetHeight);
+                    resetView();
+                    resetCropToCenter();
+                    drawCanvas();
+                };
+                img.src = '/api/original_image?t=' + Date.now();
+            });
+
+            // ---- UI actions ----
+            resetViewBtn.addEventListener('click', () => {
+                if (!originalImage) return;
+                resetView();
+                drawCanvas();
+            });
+            resetCropBtn.addEventListener('click', () => {
+                if (!originalImage) return;
+                resetCropToCenter();
+                drawCanvas();
+            });
+            applyCropBtn.addEventListener('click', () => {
+                if (!originalImage) { alert('Upload image first.'); return; }
+                let success = false;
+                if (drawMode === 'freehand' && freehandPoints.length > 2) {
+                    success = extractFreehandCrop();
+                } else if (drawMode === 'rectangle') {
+                    success = extractFinalCrop();
+                }
+                if (success) {
+                    document.getElementById('continueBtn').style.display = 'inline-flex';
+                }
+            });
+            downloadBtn.addEventListener('click', downloadCropped);
+
+            // canvas mouse events
+            canvas.addEventListener('mousedown', onMouseDown);
+            // Zoom with mouse wheel (zooms toward cursor position)
+            canvas.addEventListener('wheel', (e) => {
+                if (!originalImage) return;
+
+                e.preventDefault();
+
+                // Get mouse position relative to canvas (in canvas pixels)
+                const rect = canvas.getBoundingClientRect();
+                const mouseCanvasX = (e.clientX - rect.left) * (canvas.width / rect.width);
+                const mouseCanvasY = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+                // Current mouse position in image coordinates BEFORE zoom
+                const mouseImgX = offsetX + mouseCanvasX / scale;
+                const mouseImgY = offsetY + mouseCanvasY / scale;
+
+                // Calculate new scale (zoom in/out)
+                const delta = e.deltaY > 0 ? -zoomIntensity : zoomIntensity;
+                let newScale = scale * (1 + delta);
+
+                // Limit zoom range
+                newScale = Math.min(Math.max(newScale, 0.5), 8);
+
+                if (newScale === scale) return;
+
+                // Calculate new offset so mouse stays on same image point
+                const newOffsetX = mouseImgX - mouseCanvasX / newScale;
+                const newOffsetY = mouseImgY - mouseCanvasY / newScale;
+
+                scale = newScale;
+                offsetX = newOffsetX;
+                offsetY = newOffsetY;
+
+                // Clamp to image boundaries
+                clampPanOffset();
+                drawCanvas();
+                // Update zoom display
+                const zoomPercent = document.getElementById('zoomLevel');
+                if (zoomPercent) {
+                    zoomPercent.innerHTML = `🔍 Zoom: ${Math.round(scale * 100)}%`;
+                }
+            }, { passive: false });
+
+            window.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('mouseup', onMouseUp);
+            canvas.style.cursor = 'grab';
+
+            // init placeholder
+            ctx.fillStyle = "#1f2e38";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#8daec0";
+            ctx.font = "16px system-ui";
+            ctx.fillText("📷 Ready for upload", canvas.width / 2 - 90, canvas.height / 2);
+
+            document.getElementById('toggleModeBtn').addEventListener('click', () => {
+                if (drawMode === 'rectangle') {
+                    drawMode = 'freehand';
+                    toggleModeBtn.textContent = '⬛ Switch to Rectangle';
+                    toggleModeBtn.style.background = '#2b5a3e';
+                    canvas.style.cursor = 'crosshair';
+                    resetCropBtn.style.opacity = '0.5';
+                    resetCropBtn.style.pointerEvents = 'none';
+                    drawCanvas(); // Redraw to hide rectangle
+                } else {
+                    drawMode = 'rectangle';
+                    toggleModeBtn.textContent = '🖌️ Switch to Freehand';
+                    toggleModeBtn.style.background = '#5a3e2b';
+                    canvas.style.cursor = 'grab';
+                    freehandPoints = []; // clear freehand drawing
+                    resetCropBtn.style.opacity = '1';
+                    resetCropBtn.style.pointerEvents = 'auto';
+                    drawCanvas(); // Redraw to show rectangle
+                }
+            });
+        
+            document.getElementById('continueBtn').addEventListener('click', () => {
+                if (!window.lastCroppedDataUrl) return;
+                fetch('/api/save_cropped', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ image: window.lastCroppedDataUrl })
+                }).then(r => r.json()).then(d => {
+                    if (d.success) location.href = '/preprocess';
+                });
+            });
+            // After your existing Apply Crop logic, add:
+            fetch('/api/save_cropped', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: croppedCanvas.toDataURL('image/jpeg', 0.92) })
+            }).then(r => r.json()).then(d => {
+                if (d.success) location.href = '/preprocess';
+            });
+        })();
+    </script>
+</body>
+
+</html>

@@ -176,9 +176,11 @@
     </div>
 
     <div class="action-row" id="extraActions" style="display:none">
-      <button class="btn btn-ghost" onclick="generateAnimation()">🔄 Regenerate</button>
-      <button class="btn btn-restart" onclick="window.location.href='/'">🏠 New Character</button>
-    </div>
+    <button class="btn btn-ghost" onclick="generateAnimation()">🔄 Regenerate</button>
+    <a class="btn btn-ghost" id="downloadGif" href="/api/gif" download="animation.gif">⬇️ GIF</a>
+    <a class="btn btn-ghost" id="downloadMp4" href="/api/mp4" download="animation.mp4">⬇️ MP4</a>
+    <button class="btn btn-restart" onclick="window.location.href='/'">🏠 New Character</button>
+  </div>
 
     <div class="status" id="status"></div>
   </div>
