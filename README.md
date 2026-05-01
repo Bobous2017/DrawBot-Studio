@@ -4,9 +4,14 @@ This project captures a drawing/photo, extracts a person-like skeleton from the 
 
 ## 1) Requirements
 
-- Python 3.10+ (recommended: 3.11)
-- Webcam (for live capture)
-- Windows/macOS/Linux with GUI support (required for OpenCV and Pygame windows)
+ # create and activate the virtual environment
+    conda create --name animated_drawings python=3.8.13
+    conda activate animated_drawings
+
+    # clone AnimatedDrawings and use pip to install
+    git clone https://github.com/facebookresearch/AnimatedDrawings.git
+    cd AnimatedDrawings
+    pip install -e .
 
 ## 2) Clone and open project
 
