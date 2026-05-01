@@ -11,7 +11,7 @@ This project captures a drawing/photo, extracts a person-like skeleton from the 
 ## 2) Clone and open project
 
 ```bash
-git clone https://github.com/Bier0003/robot_agent.git
+git clone https://github.com/Bobous2017/DrawBot-Studio/robot_agent.git
 cd robot_agent
 ```
 
