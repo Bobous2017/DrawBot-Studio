@@ -704,7 +704,7 @@
                 isPanning = false;
                 canvas.style.cursor = 'grab';
             }
-            
+
             function extractFreehandCrop() {
                 if (!originalImage || freehandPoints.length < 3) {
                     alert('Draw a closed shape first (at least 3 points)');
@@ -966,12 +966,13 @@
                     drawCanvas(); // Redraw to show rectangle
                 }
             });
-        
+
             document.getElementById('continueBtn').addEventListener('click', () => {
                 if (!window.lastCroppedDataUrl) return;
+                fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "crop_resize" }) });
                 fetch('/api/save_cropped', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ image: window.lastCroppedDataUrl })
                 }).then(r => r.json()).then(d => {
                     if (d.success) location.href = '/preprocess';
