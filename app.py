@@ -21,7 +21,7 @@ from scipy import ndimage
 
 # ── paths ──────────────────────────────────────────────────────────────────────
 APP_DIR    = Path(__file__).parent
-AD_DIR     = Path(r"C:\Users\bobx0266\AnimatedDrawings")
+AD_DIR = Path("/tmp/animated_drawings")
 EXAMPLES   = AD_DIR / "examples"
 CHAR_DIR   = APP_DIR / "assets" / "char_output"
 ASSETS_DIR = APP_DIR / "assets"
@@ -273,7 +273,7 @@ def save_processed():
         tmp_svg = tempfile.NamedTemporaryFile(suffix=".svg", delete=False)
         tmp_svg.close()
         cv2.imwrite(tmp_bmp.name, bm_src)
-        POTRACE = r"C:\Users\bobx0266\Downloads\potrace-1.16.win64\potrace-1.16.win64\potrace.exe"
+        POTRACE = "potrace"  # installed via apt, available system-wide
         subprocess.run([POTRACE, tmp_bmp.name, "-s", "-o", tmp_svg.name,
                         "--turdsize",     str(data.get("turdsize", 500)),
                         "--alphamax",     str(data.get("alphamax", 1.0)),
@@ -354,7 +354,7 @@ def save_processed():
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
-    
+
 @app.route("/api/save_capture", methods=["POST"])
 def save_capture():
     data = request.json.get("image", "")
@@ -460,7 +460,7 @@ def preview_potrace():
     tmp_svg.close()
     cv2.imwrite(tmp_bmp.name, bm_src)
 
-    POTRACE = r"C:\Users\bobx0266\Downloads\potrace-1.16.win64\potrace-1.16.win64\potrace.exe"
+    POTRACE = "potrace"  # installed via apt, available system-wide
     result = subprocess.run(
         [POTRACE, tmp_bmp.name, "-s", "-o", tmp_svg.name,
          "--turdsize", str(turdsize),
@@ -504,7 +504,12 @@ def save_joints():
         yaml.dump(cfg, f)
     return jsonify({"success": True})
 
-
+# Start virtual display once at app startup
+import subprocess
+import time
+xvfb = subprocess.Popen(["Xvfb", ":99", "-screen", "0", "1024x768x24"])
+os.environ["DISPLAY"] = ":99"
+time.sleep(1)
 #-------------- Call animation libraries -------------------
 @app.route("/animate")
 def animate_page():
@@ -517,6 +522,9 @@ def do_animate():
     gif_path = CHAR_DIR / "video.gif"
 
     mvc_cfg = {
+        "view": {
+            "USE_MESA": True
+        },
         "scene": {
             "ANIMATED_CHARACTERS": [{
                 "character_cfg": str((CHAR_DIR / "char_cfg.yaml").resolve()),
@@ -534,7 +542,9 @@ def do_animate():
         yaml.dump(mvc_cfg, f)
 
     try:
+        import os
         import animated_drawings.render
+        os.chdir("/tmp/animated_drawings")
         animated_drawings.render.start(mvc_path)
         return jsonify({"success": True, "gif_url": "/api/gif"})
     except Exception as e:
@@ -567,10 +577,38 @@ def serve_mp4():
 
 @app.route("/api/texture")
 def serve_texture():
-    return send_file(str(CHAR_DIR / "texture.png"), mimetype="image/png")
+    response = send_file(str(CHAR_DIR / "texture.png"), mimetype="image/png")
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    return response
 
+
+STATS_FILE = APP_DIR / "usage_stats.json"
+
+def load_stats():
+    if STATS_FILE.exists():
+        with open(STATS_FILE) as f:
+            return json.load(f)
+    return {"crop_resize": 0, "process_image": 0, "place_joints": 0, "generate_animation": 0}
+
+def save_stats(stats):
+    with open(STATS_FILE, "w") as f:
+        json.dump(stats, f, indent=2)
+
+@app.route("/api/track", methods=["POST"])
+def track():
+    action = request.json.get("action")
+    stats = load_stats()
+    if action in stats:
+        stats[action] += 1
+    save_stats(stats)
+    return jsonify({"success": True, "stats": stats})
+
+@app.route("/api/stats")
+def get_stats():
+    return jsonify(load_stats())
 
 if __name__ == "__main__":
     import webbrowser
     threading.Timer(1.5, lambda: webbrowser.open("http://localhost:5050")).start()
-    app.run(port=5050, debug=False)
+    app.run(host='0.0.0.0', port=5050, debug=False)

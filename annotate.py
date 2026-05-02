@@ -26,8 +26,8 @@ AD_DIR      = ROBOT_DIR.parent / "AnimatedDrawings"        # sibling folder
 EXAMPLES    = AD_DIR / "examples"
 FIXER_APP   = EXAMPLES / "fixer_app"
 CHAR_DIR    = ROBOT_DIR / "assets" / "char_output"         # where we write files
-MOTION_CFG  = (Path("C:/Users/bobx0266/AnimatedDrawings/examples/config/motion/dab.yaml")).resolve()
-RETARGET    = (Path("C:/Users/bobx0266/AnimatedDrawings/examples/config/retarget/fair1_ppf.yaml")).resolve()
+RETARGET = Path("/tmp/animated_drawings/examples/config/retarget/fair1_ppf.yaml")
+POTRACE = "potrace"  # installed via apt, available system-wide
 
 # ── segmentation (from AnimatedDrawings examples/image_to_annotations.py) ─────
 
@@ -188,7 +188,7 @@ def launch_fixer_app(char_dir: Path, port: int = 5050):
 
 def animate(char_dir: Path):
     import animated_drawings.render
-    ad_examples = Path(r"C:/Users/bobx0266/AnimatedDrawings/examples")
+    ad_examples = Path("/tmp/animated_drawings/examples")
     motion_cfg  = ad_examples / "config" / "motion" / "dab.yaml"
     retarget    = ad_examples / "config" / "retarget" / "fair1_ppf.yaml"
     mvc_cfg = {
